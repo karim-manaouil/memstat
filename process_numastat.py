@@ -7,7 +7,7 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 
-COLS = 2
+COLS = 3
 STOP = 0
 DATA_FILE = "data/numastat_data.json"
 
