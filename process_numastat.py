@@ -7,9 +7,11 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 
-COLS = 3
+COLS = 2
 STOP = 0
-DATA_FILE = "numastat_data.json"
+DATA_FILE = "data/numastat_data.json"
+
+scan_interval = 0.01
 
 def sigterm_handler(signum, frame):
     global STOP
@@ -39,7 +41,7 @@ def run_command_and_parse():
         for line in output_lines:
             process_output_line(line, data)
 
-        time.sleep(0.1) 
+        time.sleep(scan_interval) 
     
     return data
 
@@ -71,7 +73,7 @@ def run():
     with open(DATA_FILE, 'w') as file:
         json.dump(data, file)
     
-    print("Data saved to numastat_data.json")
+    print("Data saved to " + DATA_FILE)
 
 def main():
     parser = argparse.ArgumentParser(description='numastat processor')
