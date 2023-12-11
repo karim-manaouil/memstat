@@ -39,10 +39,16 @@ elif [ "$1" = "run" ]; then
 	elif [ "$2" = "pmbench" ]; then
 		# numactl -m 2 --cpunodebind 0 perf stat ~/pmbench/pmbench -i -j4 -m 8192 -s 8192 -p uniform -r 80 30
 		perf stat ~/pmbench/pmbench -i -j 4 -m 8192 -s 8192 -p normal --shape=16384 -r 80 30
-	elif [ "$2" = "parsec" ]; then
-		# parsecmgmt -a run -p parsec.bodytrack -i simlarge -n 16 -s "sudo perf stat -M cpu_utilization -a -- "
+	elif [ "$2" = "bigann" ]; then
+		pushd ~/big-ann-benchmarks
+		source venv/bin/activate
+		python run.py --nodocker --dataset bigann-1B --algorithm faiss-t1
+		deactivate
+		popd
+	elif [ "$2" = "cmd" ]; then
 		"${@:3}"
 	fi
+	# parsecmgmt -a run -p parsec.bodytrack -i simlarge -n 16 -s "sudo perf stat -M cpu_utilization -a -- "
 
 	kill -2 $pid1
 	kill -2 $pid2
