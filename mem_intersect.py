@@ -24,7 +24,7 @@ page_access_count = defaultdict(lambda: defaultdict(int))
 with open(file_path, 'r') as file:
     for line in file:
         parts = line.split()
-        if len(parts) >= 2 and "0/0" not in line and not line.endswith("addr: 0"):
+        if len(parts) >= 2 and "0/0" not in line and not line.endswith(" 0\n"):
             cpu = parts[0]
             addr_str = parts[-1]
             try:
@@ -38,6 +38,10 @@ with open(file_path, 'r') as file:
 shared_pages = {page: counts for page, counts in page_access_count.items() if len(counts) > 1}
 
 for page, counts in shared_pages.items():
-    print(f"Page {hex(page)} accessed by multiple CPUs:")
-    for cpu, access_count in counts.items():
-        print(f"  CPU {cpu} accessed {access_count} times")
+    total_accesses = sum(counts.values())
+    num_cpus = len(counts)
+    average_accesses = total_accesses / num_cpus
+    if average_accesses >= 100:
+        print(f"Page {hex(page)} accessed by multiple CPUs:")
+        for cpu, access_count in counts.items():
+            print(f"  CPU {cpu} accessed {access_count} times")
