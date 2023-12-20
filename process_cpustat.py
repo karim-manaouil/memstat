@@ -60,13 +60,17 @@ def run():
     print("Data saved to " + DATA_FILE)
 
 def main():
-    parser = argparse.ArgumentParser(description='numastat processor')
+    global DATA_FILE
 
+    parser = argparse.ArgumentParser(description='numastat processor')
+    parser.add_argument('--stat', required=True, type=str, help='Stats file')
     parser.add_argument('--plot', action='store_true', help='Plot CPU utilisation')
     parser.add_argument('--run', action='store_true', help='Start monitoring')
 
     args = parser.parse_args()
- 
+
+    DATA_FILE = "data/cpustat_" + args.stat + ".json"
+
     if args.run:
         run()
     elif args.plot:

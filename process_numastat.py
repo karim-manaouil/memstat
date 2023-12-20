@@ -7,7 +7,7 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 
-COLS = 3
+COLS = 4
 STOP = 0
 DATA_FILE = "data/numastat_data.json"
 
@@ -76,13 +76,17 @@ def run():
     print("Data saved to " + DATA_FILE)
 
 def main():
-    parser = argparse.ArgumentParser(description='numastat processor')
+    global DATA_FILE
 
+    parser = argparse.ArgumentParser(description='numastat processor')
+    parser.add_argument('--stat', required=True, type=str, help='Stats file')
     parser.add_argument('--plot', type=str, help='Plot a metric')
     parser.add_argument('--run', action='store_true', help='Start monitoring')
 
     args = parser.parse_args()
- 
+
+    DATA_FILE = "data/numastat_" + args.stat + ".json"
+
     if args.run:
         run()
     elif args.plot:

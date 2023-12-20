@@ -75,13 +75,17 @@ def run():
     print("Data saved to " + DATA_FILE)
 
 def main():
-    parser = argparse.ArgumentParser(description='vmstat processor')
+    global DATA_FILE
 
+    parser = argparse.ArgumentParser(description='vmstat processor')
+    parser.add_argument('--stat', required=True, type=str, help='Stats file')
     parser.add_argument('--plot', nargs="+", type=str, help='Plot metrics')
     parser.add_argument('--run', action='store_true', help='Start monitoring')
 
     args = parser.parse_args()
  
+    DATA_FILE = "data/vmstat_" + args.stat + ".json"
+
     if args.run:
         run()
     elif args.plot:
