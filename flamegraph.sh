@@ -11,7 +11,23 @@
 # $2: time in sec for recording
 #
 
-flmg="/home/karim/FlameGraph"
+flmg="./FlameGraph"
+
+if [ ! "$#" -eq 2 ]; then
+	echo "Please provide two arguments!"
+	exit 1
+fi
+
+if [ "$EUID" -ne 0 ]; then
+	echo "Please run with sudo"
+	exit 1
+fi
+
+if [ ! -d "$flmg" ]; then
+	echo "$flmg doesn't exist!"
+	echo "Run 'git clone https://github.com/brendangregg/FlameGraph.git'"
+	exit 1
+fi
 
 perf record -F 99 -a -g -p $1 &
 perf_pid=$!
