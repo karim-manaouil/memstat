@@ -7,11 +7,11 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 
-COLS = 4
+COLS = 2
 STOP = 0
 DATA_FILE = "data/numastat_data.json"
 
-scan_interval = 0.01
+scan_interval = 0.1
 
 def sigterm_handler(signum, frame):
     global STOP

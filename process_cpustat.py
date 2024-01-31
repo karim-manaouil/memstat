@@ -10,7 +10,7 @@ import numpy as np
 STOP = 0
 DATA_FILE = "data/cpustat_data.json"
 
-scan_interval = 0.01
+scan_interval = 0.1
 
 def sigterm_handler(signum, frame):
     global STOP
