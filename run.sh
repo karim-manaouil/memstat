@@ -12,6 +12,8 @@ elif [ "$1" = "plot" ]; then
 			python3 process_vmstat.py --plot thp_fault_alloc \
 				thp_fault_fallback thp_collapse_alloc \
 				thp_deferred_split_page thp_split_pmd  --stat $4
+		else
+			python3 process_vmstat.py --plot $3 --stat $4
 		fi
 	elif [ "$2" = "numastat" ]; then
 		python3 process_numastat.py --plot $3 --stat $4
