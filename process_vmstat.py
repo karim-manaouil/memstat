@@ -8,8 +8,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 STOP = 0
-DATA_FILE = "data/vmstat_data.json"
-
 scan_interval = 0.01 # 10ms
 
 def sigterm_handler(signum, frame):
@@ -50,7 +48,9 @@ def plot_metrics(metrics, data):
         if not metric in data:
             print(metric + " doesn't exist!!")
             exit(0)
+
         v = data[metric][1:] # [0] is used to calculate relative values 
+
         plt.plot(v, label=metric)
 
     plt.xlabel("Time")
@@ -59,35 +59,64 @@ def plot_metrics(metrics, data):
     plt.legend()
     plt.show()
 
-def plot(metrics):
-    with open(DATA_FILE, "r") as json_file:
+def compare_metrics(metrics, data1, data2):
+    for metric in metrics:
+        if not metric in data1 or metric not in data2:
+            print(metric + " doesn't exist!!")
+            exit(0)
+
+        v1 = data1[metric][1:] # [0] is used to calculate relative values
+        v2 = data2[metric][1:] # [0] is used to calculate relative values
+
+        plt.plot(v1, label=f'{metric} - src', linestyle='--')
+        plt.plot(v2, label=f'{metric} - dst', linestyle='--')
+
+    plt.xlabel("Time")
+    plt.ylabel("Pages")
+    plt.title("Evolution")
+    plt.legend()
+    plt.show()
+
+def plot(metrics, file):
+    with open(file, "r") as json_file:
         data = json.load(json_file)
     
     plot_metrics(metrics, data)
-    
-def run():
+
+def compare(metrics, file1, file2):
+    with open(file1, "r") as json1:
+        data1 = json.load(json1)
+
+    with open(file2, "r") as json2:
+        data2 = json.load(json2)
+
+    compare_metrics(metrics, data1, data2)
+
+def run(file):
     signal.signal(signal.SIGINT, sigterm_handler)
     data = run_command_and_parse()
 
-    with open(DATA_FILE, 'w') as file:
+    with open(file, 'w') as file:
         json.dump(data, file)
     
-    print("Data saved to " + DATA_FILE)
+    print("Data saved to " + file)
 
 def main():
-    global DATA_FILE
-
     parser = argparse.ArgumentParser(description='vmstat processor')
-    parser.add_argument('--stat', required=True, type=str, help='Stats file')
+    parser.add_argument('--stat', nargs="+", required=True, type=str, help='Stats file')
     parser.add_argument('--plot', nargs="+", type=str, help='Plot metrics')
     parser.add_argument('--run', action='store_true', help='Start monitoring')
 
     args = parser.parse_args()
  
-    DATA_FILE = "data/vmstat_" + args.stat + ".json"
+    file1 = "data/vmstat_" + args.stat[0] + ".json"
 
     if args.run:
-        run()
+        run(file1)
     elif args.plot:
-        plot(args.plot)
+        if len(args.stat) == 1:
+            plot(args.plot, file1)
+        else:
+            file2 = "data/vmstat_" + args.stat[1] + ".json"
+            compare(args.plot, file1, file2)
 main()

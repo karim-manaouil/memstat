@@ -29,13 +29,15 @@ if [ ! -d "$flmg" ]; then
 	exit 1
 fi
 
-perf record -F 99 -a -g -p $1 &
-perf_pid=$!
+if [ ! "$1" = "plot" ]; then
+	perf record -F 99 -a -g -p $1 &
+	perf_pid=$!
 
-sleep $2
+	sleep $2
 
-kill -INT $perf_pid
-wait $perf_pid
+	kill -INT $perf_pid
+	wait $perf_pid
+fi
 
 perf script | ${flmg}/stackcollapse-perf.pl > out.stack
 ${flmg}/flamegraph.pl out.stack > flamegraph.svg
