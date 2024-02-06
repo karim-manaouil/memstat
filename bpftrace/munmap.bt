@@ -1,0 +1,15 @@
+tracepoint:syscalls:sys_enter_mmap 
+{
+	@u[comm, args.addr] = args.len;
+}
+
+tracepoint:syscalls:sys_enter_munmap
+/ @u[comm, args.addr] /
+{
+	$mbs = @u[comm, args.addr]/1024/1024;
+	printf("%s unmapping 0x%lx of size %lu MiB\n",comm, args.addr, $mbs);
+
+	delete(@u[comm, args.addr]);
+}
+
+ END {}
