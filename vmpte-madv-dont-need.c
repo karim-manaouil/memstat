@@ -23,23 +23,29 @@ int main(int argc, char **argv)
 	size_t map_size = TiB;
 	void *mem;
 	char *p, *end, *estr;
-	int opt, wait_us = 0;
+	int opt, sleep_s = 0, wait_us = 0;
 	int ret;
 
-	while ((opt = getopt(argc, argv, "mw:") != -1)) {
+	while ((opt = getopt(argc, argv, "p:m:s:")) != -1) {
 		switch (opt) {
-		case 'w':
+		case 'p':
 			wait_us = atoi(optarg);
+			break;
+		case 's':
+			sleep_s = atoi(optarg);
 			break;
 		case 'm':
 			map_size = strtoul(optarg, NULL, 10);
 			map_size = map_size << 30;
+			break;
 		default:
+			char *usage_fmt = "Usage: %s [-t usecs] [-m GiBs]\n";
+			fprintf(stderr, usage_fmt, argv[0]);
 			exit(EXIT_FAILURE);
 		}
 	}
 
-	printf("Allocating %lu GiB virt\nSleeping for %d ms\n",
+	printf("Allocating %lu GiB virt\nPausing for %d ms\n",
 			map_size == TiB? 1024: map_size >> 30, wait_us);
 
 	mem = mmap(0, map_size, PROT_COMMIT, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -73,7 +79,8 @@ int main(int argc, char **argv)
 			}
 		}
 	}
-
+	printf("Waiting for %d secs before exiting...\n", sleep_s);
+	sleep(sleep_s);
 	return 0;
 failed:
 	perror(estr);
