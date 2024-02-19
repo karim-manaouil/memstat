@@ -21,7 +21,7 @@ int main()
 
 	mem = mmap(0, map_size, PROT_COMMIT, MAP_ANONYMOUS, -1, 0);
 	if (mem == MAP_FAILED) {
-		perror("mmap:");
+		perror("mmap");
 		exit(EXIT_FAILURE);
 	}
 
@@ -43,6 +43,6 @@ int main()
 	return 0;
 
 madv_failed:
-	perror("madvise:");
+	perror("madvise");
 	exit(EXIT_FAILURE);
 }
