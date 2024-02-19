@@ -1,3 +1,9 @@
+/* GPL v2 software
+ *
+ * Author: Karim Manaouil <k.manaouil@gmail.com>
+ *		Edinburgh University 23/24
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/mman.h>
