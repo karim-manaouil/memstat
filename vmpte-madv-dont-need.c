@@ -18,22 +18,41 @@
 
 #define touch(p) (*(char volatile *)p = 0xff)
 
-int main()
+int main(int argc, char **argv)
 {
 	size_t map_size = TiB;
 	void *mem;
-	char *p, *end;
+	char *p, *end, *estr;
+	int opt, wait_us = 0;
 	int ret;
+
+	while ((opt = getopt(argc, argv, "mw:") != -1)) {
+		switch (opt) {
+		case 'w':
+			wait_us = atoi(optarg);
+			break;
+		case 'm':
+			map_size = strtoul(optarg, NULL, 10);
+			map_size = map_size << 30;
+		default:
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	printf("Allocating %lu GiB virt\nSleeping for %d ms\n",
+			map_size == TiB? 1024: map_size >> 30, wait_us);
 
 	mem = mmap(0, map_size, PROT_COMMIT, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if (mem == MAP_FAILED) {
-		perror("mmap");
-		exit(EXIT_FAILURE);
+		estr = "mmap";
+		goto failed;
 	}
 
 	ret = madvise(mem, map_size, MADV_NOHUGEPAGE);
-	if (ret)
-		goto madv_failed;
+	if (ret) {
+		estr = "madvise";
+		goto failed;
+	}
 
 	p = mem;
 	end = p + map_size;
@@ -41,14 +60,23 @@ int main()
 	while (p < end) {
 		touch(p);
 		ret = madvise((void *)p, THP, MADV_DONTNEED);
-		if (ret)
-			goto madv_failed;
+		if (ret) {
+			estr = "madvise";
+			goto failed;
+		}
 		p += THP;
+		if (wait_us) {
+			ret = usleep(wait_us);
+			if (ret) {
+				perror("usleep");
+				exit(EXIT_FAILURE);
+			}
+		}
 	}
 
 	return 0;
-
-madv_failed:
-	perror("madvise");
+failed:
+	perror(estr);
+	fprintf(stderr, "Please enable memory overcommit, or use vmpte.sh script!\n");
 	exit(EXIT_FAILURE);
 }
