@@ -10,7 +10,7 @@
 #define GiB	(1UL << 30)
 #define TiB	(1UL << 40)
 
-#define touch(p) (*(char volatile *)p = 0xf)
+#define touch(p) (*(char volatile *)p = 0xff)
 
 int main()
 {
@@ -19,13 +19,13 @@ int main()
 	char *p, *end;
 	int ret;
 
-	mem = mmap(0, map_size, PROT_COMMIT, MAP_ANONYMOUS, -1, 0);
+	mem = mmap(0, map_size, PROT_COMMIT, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if (mem == MAP_FAILED) {
 		perror("mmap");
 		exit(EXIT_FAILURE);
 	}
 
-	ret = madvise(mem, TiB, MADV_NOHUGEPAGE);
+	ret = madvise(mem, map_size, MADV_NOHUGEPAGE);
 	if (ret)
 		goto madv_failed;
 
