@@ -20,15 +20,16 @@
 
 int main(int argc, char **argv)
 {
+	char cmd_fmt[64];
 	size_t map_size = TiB;
 	void *mem;
 	char *p, *end, *estr;
 	int opt, sleep_s = 0, wait_us = 0;
-	int ret;
+	int pid, ret;
 
-	while ((opt = getopt(argc, argv, "p:m:s:")) != -1) {
+	while ((opt = getopt(argc, argv, "d:m:s:")) != -1) {
 		switch (opt) {
-		case 'p':
+		case 'd':
 			wait_us = atoi(optarg);
 			break;
 		case 's':
@@ -39,7 +40,7 @@ int main(int argc, char **argv)
 			map_size = map_size << 30;
 			break;
 		default:
-			char *usage_fmt = "Usage: %s [-t usecs] [-m GiBs]\n";
+			char *usage_fmt = "Usage: %s [-p usecs] [-m GiBs]\n";
 			fprintf(stderr, usage_fmt, argv[0]);
 			exit(EXIT_FAILURE);
 		}
@@ -79,6 +80,14 @@ int main(int argc, char **argv)
 			}
 		}
 	}
+	pid = getpid();
+	sprintf(cmd_fmt, "cp /proc/%d/status /tmp/vmpte", pid);
+	ret = system(cmd_fmt);
+	if (ret) {
+		fprintf(stderr, "Could not write status file\n");
+		exit(1);
+	}
+
 	printf("Waiting for %d secs before exiting...\n", sleep_s);
 	sleep(sleep_s);
 	return 0;
