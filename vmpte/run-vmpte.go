@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strings"
 	"strconv"
+	"errors"
 	"fmt"
 	"flag"
 	"os"
@@ -18,6 +19,12 @@ const (
 type KernelConfig struct {
 	MemoryOvercommit string
 	TransHugePage    string
+}
+
+type ProcStatus struct {
+	Path string
+	File *os.File
+	Records []string
 }
 
 var (
@@ -75,6 +82,43 @@ func (p *KernelConfig) String() string {
 	return fmt.Sprintf("memory_overcommit=%s, thp=%s", oc, p.TransHugePage)
 }
 
+func (p *ProcStatus) Open(path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	procStat := make([]byte, 2048)
+	_, err = f.Read(procStat)
+	if err != nil {
+		return err
+	}
+	r := strings.Split(string(procStat), "\n")
+	p.Path = path
+	p.File = f
+	p.Records = r
+	return nil
+}
+
+func (p *ProcStatus) Close() error {
+	p.File.Close()
+	err := os.Remove(p.Path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Could not unlink status file: %v\n", err)
+		return err
+	}
+	return nil
+}
+
+func (p *ProcStatus) Get(key string) (string, error) {
+	for _, ent := range p.Records {
+		if strings.Contains(ent, key) {
+			fields := strings.Fields(ent)
+			return fields[1], nil
+		}
+	}
+	return "", errors.New("Key was not found!!")
+}
+
 func run_and_collect_stats() error {
 	cmd := exec.Command("./vmpte", "-m", *vsz, "-d", *delay, "-s", *sleep)
 	if cmd.Err != nil {
@@ -91,40 +135,27 @@ func run_and_collect_stats() error {
 	if *verbose == true {
 		fmt.Fprintf(os.Stderr, "Child process has pid %d\n", pid)
 	}
-
 	err = cmd.Wait()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "vmpte failed: %v\n", err)
 		return err
 	}
-	file, err := os.Open(STATUS_FILE_PATH)
+	st := ProcStatus{}
+	err = st.Open(STATUS_FILE_PATH)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Could not open status file: %v\n", err)
-		return err
+		fmt.Fprintf(os.Stderr, "%v\n", err)
 	}
-	defer file.Close()
+	virt_str, _ := st.Get("VmPTE")
+	rss_str, _ := st.Get("VmRSS")
 
-	procStat := make([]byte, 1024)
-	_, err = file.Read(procStat)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Could not read status file\n")
-		return err
-	}
-	ents := strings.Split(string(procStat), "\n")
-	for _, ent := range ents {
-		if strings.Contains(ent, "VmPTE") {
-			fields := strings.Fields(ent)
-			vmpte, _ := strconv.Atoi(fields[1])
-			fmt.Printf("%s,%d\n", *vsz, vmpte/1024)
-			break
-		}
-	}
-	err = os.Remove(STATUS_FILE_PATH)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Could not unlink status file: %v\n", err)
-		return err
-	}
-	return nil
+	virt, _ := strconv.Atoi(virt_str)
+	rss, _ := strconv.Atoi(rss_str)
+
+	fmt.Printf("%s,%d,%d,%f\n",
+		*vsz, virt, rss,
+		float64(virt)/(float64(virt)+float64(rss))*100)
+	err = st.Close()
+	return err
 }
 
 func apply_vmpte_kernel_config() {
