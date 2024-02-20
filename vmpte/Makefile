@@ -8,4 +8,5 @@ vmpte: vmpte-madv-dont-need.c
 
 vmpte-run: run-vmpte.go
 	go build run-vmpte.go
-
+clean:
+	rm vmpte run-vmpte
