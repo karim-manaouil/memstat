@@ -23,6 +23,7 @@ var (
 	verbose *bool
 	delay *string
 	sleep *string
+	vsz *string
 )
 
 var (
@@ -74,7 +75,7 @@ func (p *KernelConfig) String() string {
 }
 
 func run_and_collect_stats() error {
-	cmd := exec.Command("./vmpte", "-d", *delay, "-s", *sleep)
+	cmd := exec.Command("./vmpte", "-m", *vsz, "-d", *delay, "-s", *sleep)
 	if cmd.Err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", cmd.Err)
 		return cmd.Err
@@ -164,6 +165,7 @@ func main() {
 	verbose = flag.Bool("v", false, "Verbose")
 	delay = flag.String("d", "0", "Inject us delay")
 	sleep = flag.String("s", "0", "Sleep for ms before exiting")
+	vsz = flag.String("m", "1024", "size of virt in GiB")
 	flag.Parse()
 
 	if os.Geteuid() != 0 {
