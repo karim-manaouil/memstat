@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"strings"
+	"strconv"
 	"fmt"
 	"flag"
 	"os"
@@ -87,7 +88,9 @@ func run_and_collect_stats() error {
 	}
 	pid := cmd.Process.Pid
 
-	fmt.Fprintf(os.Stderr, "Child process has pid %d\n", pid)
+	if *verbose == true {
+		fmt.Fprintf(os.Stderr, "Child process has pid %d\n", pid)
+	}
 
 	err = cmd.Wait()
 	if err != nil {
@@ -111,7 +114,8 @@ func run_and_collect_stats() error {
 	for _, ent := range ents {
 		if strings.Contains(ent, "VmPTE") {
 			fields := strings.Fields(ent)
-			fmt.Printf("PageTables,%s,%s\n", fields[1], fields[2])
+			vmpte, _ := strconv.Atoi(fields[1])
+			fmt.Printf("%s,%d\n", *vsz, vmpte/1024)
 			break
 		}
 	}
