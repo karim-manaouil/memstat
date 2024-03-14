@@ -14,6 +14,13 @@
 #include <linux/perf_event.h>
 #include <linux/hw_breakpoint.h>
 
+#define len(a)	(sizeof(a)/sizeof(*a))
+
+#define EVENT_SOURCE_PATH "/sys/bus/event_source/devices"
+
+#define MAX_CPUS	256
+#define MAX_EVENTS	16
+
 int perf_event_open(struct perf_event_attr *attr, pid_t pid, int cpu,
 		    int group_fd, unsigned long flags);
 
@@ -22,13 +29,6 @@ int perf_event_open(struct perf_event_attr *attr, pid_t pid, int cpu,
 {
 	return syscall(SYS_perf_event_open, attr, pid, cpu, group_fd, flags);
 }
-
-#define len(a)	(sizeof(a)/sizeof(*a))
-
-#define EVENT_SOURCE_PATH "/sys/bus/event_source/devices"
-
-#define MAX_CPUS	256
-#define MAX_EVENTS	16
 
 struct pmu {
 	const char *name;
@@ -42,6 +42,9 @@ struct event {
 	unsigned long long evsel;
 };
 
+#define for_each_event(e, events) \
+	for((e) = events; e < (events) + len(events); (e)++)
+
 #define AMD_UMASK(e)	(((e)->umask & 0xff) << 8)
 #define AMD_EVSEL(e)	(((e)->evsel & 0xff) | (((e)->evsel & 0xf00) << 32))
 #define AMD_CONFIG(e)	(AMD_EVSEL(e) | AMD_UMASK(e))
@@ -54,8 +57,13 @@ struct perf_event {
 	unsigned long long counter;
 };
 
+#define for_each_perf_event(e, cpu, pcp) \
+	for((e) = pcp->events; e < (pcp)->events + (pcp)->nr_events; (e)++)
+
+
 struct pcp_event_list {
 	int cpu;
+	int nr_events;
 	struct perf_event events[MAX_EVENTS];
 };
 
@@ -64,8 +72,8 @@ struct pmu pmus[] = {
 	{ "amd_l3", -1 },
 };
 
-#define for_each_pmu(pmu) \
-	for (pmu = pmus; pmu < pmus + len(pmus); pmu++)
+#define for_each_pmu(pmu, pmus) \
+	for ((pmu) = pmus; pmu < (pmus) + len(pmus); (pmu)++)
 
 struct pcp_event_list pcp_evl[MAX_CPUS];
 
@@ -87,7 +95,7 @@ struct pmu *find_pmu(const char *name)
 	char buf[256];
 	FILE *file;
 
-	for_each_pmu(pmu)
+	for_each_pmu(pmu, pmus)
 		if (!strcmp(pmu->name, name))
 			goto found;
 	return NULL;
@@ -98,25 +106,38 @@ found:
 	sprintf(buf, "%s/%s/type", EVENT_SOURCE_PATH, pmu->name);
 
 	file = fopen(buf, "r");
-	if (file == NULL) {
-		fprintf(stderr, "Could not find pmu %s\n", pmu->name);
+	if (file == NULL)
 		return NULL;
-	}
 
 	fread(buf, sizeof(*buf), 16, file);
 	pmu->type = atoi(buf);
 
-	fprintf(stderr, "Found pmu %s type %d\n", pmu->name, pmu->type);
 	return pmu;
+}
+
+int perf_init()
+{
+	struct pmu *pmu;
+	struct event *event;
+	struct perf_event *pevent;
+
+	for_each_event(event, events) {
+		pmu = find_pmu(events->unit);
+		if (!pmu)
+			exit(1);
+		printf("name=%s, unit=%s, type=%d, umask=0x%llx, evsel=0x%llx, "
+		       "config=0x%llx\n",
+		       event->name, event->unit, pmu->type,
+		       event->umask, event->evsel, AMD_CONFIG(event));
+	}
+	return 0;
 }
 
 int main(int argc, char **argv)
 {
 	struct perf_event_attr attr = {0};
-	unsigned long long counter;
 	int pid = 0, cpu = -1, kern = 1;
-	int msec = 0;
-	int opt, fd;
+	int opt, fd, ret, msec = 0;
 
 	if (sizeof(__u64) != sizeof(unsigned long)) {
 		fprintf(stderr, "Machine not supported\n");
@@ -145,14 +166,10 @@ int main(int argc, char **argv)
 
 	printf("pid=%d, cpu=%d, sleep=%d\n", pid, cpu, msec);
 
-	for (int i = 0; i < len(events); i++) {
-		struct pmu *pmu = find_pmu(events[i].unit);
-		if (!pmu)
-			exit(1);
-		printf("name=%s, unit=%s, type=%d, umask=0x%llx, evsel=0x%llx, "
-		       "config=0x%llx\n",
-		       events[i].name, events[i].unit, pmu->type,
-		       events[i].umask, events[i].evsel, AMD_CONFIG(&events[i]));
+	ret = perf_init();
+	if (ret) {
+		fprintf(stderr, "Error initialisig %d\n", ret);
+		exit(1);
 	}
 
 	attr.type = 13;
@@ -175,7 +192,6 @@ int main(int argc, char **argv)
 		usleep(msec * 1000);
 
 	ioctl(fd, PERF_EVENT_IOC_DISABLE, 0);
-	read(fd, &counter, sizeof(counter));
 
 	close(fd);
 }
