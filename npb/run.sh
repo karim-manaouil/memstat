@@ -8,7 +8,7 @@
 CLASSES=("B")
 APPS=("is" "ep" "cg" "mg" "ft" "bt" "sp" "lu")
 
-OMP_PATH="/home/karim/omp/"
+OMP_PATH="/root/omp/"
 
 CG_PATH="/sys/fs/cgroup/npb"
 CG_PROCS="$CG_PATH/cgroup.procs"
@@ -51,8 +51,12 @@ function run_all() {
 
 while [ "$#" -ne 0 ]; do
 	case "$1" in
-	"benchmark")
-		benchmark=1
+	"benchmark1")
+		benchmark1=1
+		break
+	;;
+	"benchmark2")
+		benchmark2=1
 		break
 	;;
 	"compile")
@@ -74,7 +78,7 @@ while [ "$#" -ne 0 ]; do
 	esac	
 done
 
-if test -v "benchmark"; then
+if test  -v "benchmark1"; then
 	enter_cgroup
 	for node in `seq 0 4`; do
 		echo "NUMA node $node"
@@ -82,6 +86,11 @@ if test -v "benchmark"; then
 		run_all
 	done
 fi
+
+if test -v "benchmark2"; then
+	run_all
+fi
+
 
 if test -v "compile"; then
 	for class in ${CLASSES[@]}; do
