@@ -8,3 +8,5 @@ numa-thp: numa-file-thp.c
 
 perf: perf.c
 	$(CC) $(CFLAGS) -o perf perf.c
+redis-bench: redis-bench.c
+	$(CC) $(CFLAGS) redis-bench.c -o redis-bench -lhiredis
